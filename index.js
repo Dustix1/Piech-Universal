@@ -39,9 +39,6 @@ for (const file of commandFiles) {
 
 client.once('ready', () => {
     const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
-    client.guilds.cache.forEach(guild => {
-        console.log(`${guild.name}\n`)
-    });
 
     client.guilds.cache.forEach(guild => {
         rest.put(Routes.applicationGuildCommands(process.env.CLIENTID, guild.id), { body: commands })
