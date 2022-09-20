@@ -5,7 +5,6 @@ module.exports = {
         .setName('help')
         .setDescription('Sends a command list'),
     async execute(interaction, client) {
-        console.log(`**${interaction.user.tag}** used command **${interaction.commandName}** on guild **${interaction.guild.name}**`);
         
         var allcommands = '';
         client.commands.forEach(command => {

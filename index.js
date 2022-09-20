@@ -77,8 +77,8 @@ client.on('voiceStateUpdate', (oldState, args, newState) => {
  */
 
 process.on('unhandledRejection', err => {
-    const guild = client.guilds.cache.get('1019590945634795521'); // 1019590945634795521 872422184658800680
-    const ereport = guild.channels.cache.get('1019611483837042699'); // 1019611483837042699 1020787576778530887
+    const guild = client.guilds.cache.get('1019590945634795521');
+    const ereport = guild.channels.cache.get('1019611483837042699');
     console.error('Unhandled promise rejection:', err);
     const error = new EmbedBuilder()
         .setTitle( `Error detected`)
@@ -101,6 +101,7 @@ client.on('interactionCreate', async interaction => {
     if (!command) return;
 
     try {
+        console.log(`**${interaction.user.tag}** used command **${interaction.commandName}** on guild **${interaction.guild.name}**`);
         await command.execute(interaction, client);
     } catch (error) {
         console.error(error)

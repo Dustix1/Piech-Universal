@@ -5,7 +5,6 @@ module.exports = {
         .setName('business-card')
         .setDescription('Sends Piechs business card'),
     async execute(interaction, client) {
-        console.log(`**${interaction.user.tag}** used command **${interaction.commandName}** on guild **${interaction.guild.name}**`);
         
         const vizitkaEmbed = new EmbedBuilder()
             .setColor(0xfc4f38)

@@ -35,7 +35,6 @@ module.exports = {
                 .setName('playlist')
                 .setDescription('Is the link a playlist?')),
     async execute(interaction, client) {
-        console.log(`**${interaction.user.tag}** used command **${interaction.commandName}** on guild **${interaction.guild.name}**`);
 
         const voice_channel = interaction.member.voice.channel;
         const serverQueue = queue.get(interaction.guild.id);

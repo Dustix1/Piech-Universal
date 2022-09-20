@@ -6,7 +6,6 @@ module.exports = {
         .setName('majkelt-classified')
         .setDescription('[Redacted]'),
     async execute(interaction, client) {
-        console.log(`**${interaction.user.tag}** used command **${interaction.commandName}** on guild **${interaction.guild.name}**`);
         
         if (interaction.user.id !== '714896664879431760' && interaction.user.id !== '385845659674345484') return interaction.reply({ content: 'You don\'t have acces to this command.', ephemeral: true });
         if (!interaction.channel.nsfw) return interaction.reply({ content: 'This channel is not NSFW!', ephemeral: true});

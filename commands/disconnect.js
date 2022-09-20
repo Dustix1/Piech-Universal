@@ -7,7 +7,6 @@ module.exports = {
         .setName('disconnect')
         .setDescription('Disconnects the bot from the voice channel.'),
     async execute(interaction, client) {
-        console.log(`**${interaction.user.tag}** used command **${interaction.commandName}** on guild **${interaction.guild.name}**`);
         
         playCM.disconnect(interaction.guild, interaction);
     }
