@@ -18,11 +18,12 @@ module.exports = {
             } else {
                 let res = JSON.parse(JSON.stringify(results[Math.round(Math.random() * results.length)]));
 
-                //interaction.reply( {content: res.url, ephemeral: false })
-                const embed = new EmbedBuilder()
+                interaction.reply({ content: res.url })
+
+                /*const embed = new EmbedBuilder()
                     .setImage(res.url)
                     .setColor('Random')
-                interaction.reply({ embeds: [embed] })
+                interaction.reply({ embeds: [embed] })*/
             }
         }
     }
