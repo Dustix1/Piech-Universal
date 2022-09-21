@@ -19,7 +19,6 @@
     "ffmpeg-static": "^5.1.0",
     "g-i-s": "^2.1.6",
     "play-dl": "^1.9.5",
-    "youtube-dl-exec": "^2.1.5",
     "yt-search": "^2.10.3",
     "ytdl-core": "^4.11.2"
   }
