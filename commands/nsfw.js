@@ -43,7 +43,7 @@ module.exports = {
 
         const tags = interaction.options.getString('search').split(' ');
 
-        Booru.search(interaction.options.getString('site'), eval(tags), { limit: 50 })
+        await Booru.search(interaction.options.getString('site'), eval(tags), { limit: 50 })
             .then(posts => {
                 if (posts.length == 0) return interaction.reply({ content: 'Nothing found.', ephemeral: true })
 
