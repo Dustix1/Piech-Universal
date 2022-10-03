@@ -18,6 +18,9 @@ const client = new Client({
     ]
 });
 
+var mainChannel;
+var mainGuild;
+
 client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
@@ -37,7 +40,7 @@ for (const file of commandFiles) {
     console.log(`Adding command ${command.data.name}`)
 }
 
-client.once('ready', () => {
+function registerCommands() {
     const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
     client.guilds.cache.forEach(guild => {
@@ -45,12 +48,29 @@ client.once('ready', () => {
             .then((data) => console.log(`Successfully registered ${data.length} commands on guild ${guild.name}.`))
             .catch(`Could not register commands on guild ${guild.name}!`);
     });
+}
 
+client.once('ready', () => {
+    registerCommands();
     console.log('Ready');
+
+    mainChannel = client.guilds.cache.get(process.env.MAINGUILDID).channels.cache.get(process.env.MAINCHANNELID);
+    mainGuild = client.guilds.cache.get(process.env.MAINGUILDID);
+
+    mainChannel.send({ content: `Bot Ready` })
     client.user.setPresence({
         activities: [{ name: '/help', type: ActivityType.Listening }],
         status: 'online',
     })
+});
+
+client.on('guildCreate', (guild) => {
+    registerCommands();
+    mainChannel.send({ content: `Added to guild name: ${guild.name} id: ${guild.id}  ->>  Reloading commands...` })
+});
+
+client.on('guildDelete', (guild) => {
+    mainChannel.send({ content: `Removed from guild name: ${guild.name} id: ${guild.id}` })
 });
 
 /**
@@ -62,9 +82,9 @@ client.once('ready', () => {
 client.on('voiceStateUpdate', (oldState, args, newState) => {
     if (oldState.channelId === null || typeof oldState.channelId == 'undefined') return;
 
-        if (oldState.member.displayName === 'Piech Universal') {
-            playCM.disconnect(oldState.guild);
-        }
+    if (oldState.member.displayName === 'Piech Universal') {
+        playCM.disconnect(oldState.guild);
+    }
 });
 
 /**
@@ -78,7 +98,7 @@ process.on('unhandledRejection', err => {
     const ereport = guild.channels.cache.get('1019611483837042699');
     console.error('Unhandled promise rejection:', err);
     const error = new EmbedBuilder()
-        .setTitle( `Error detected`)
+        .setTitle(`Error detected`)
         .setDescription("```" + err + "```")
         .setColor(Colors.Red)
     ereport.send({ embeds: [error] })
