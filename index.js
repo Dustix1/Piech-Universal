@@ -101,7 +101,7 @@ process.on('unhandledRejection', err => {
         .setTitle(`Error detected`)
         .setDescription("```" + err + "```")
         .setColor(Colors.Red)
-    ereport.send({ embeds: [error] })
+    mainChannel.send({ embeds: [error] })
 });
 
 /**
