@@ -94,14 +94,15 @@ client.on('voiceStateUpdate', (oldState, args, newState) => {
  */
 
 process.on('unhandledRejection', err => {
-    const guild = client.guilds.cache.get('1019590945634795521');
-    const ereport = guild.channels.cache.get('1019611483837042699');
+    const guild = client.guilds.cache.get(process.env.DSGUILDID);
+    const ereport = guild.channels.cache.get('1020804444788621342');
     console.error('Unhandled promise rejection:', err);
     const error = new EmbedBuilder()
         .setTitle(`Error detected`)
         .setDescription("```" + err + "```")
         .setColor(Colors.Red)
     mainChannel.send({ embeds: [error] })
+    ereport.send({ embeds: [error] })
 });
 
 /**
