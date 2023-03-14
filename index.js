@@ -8,6 +8,8 @@ const path = require('node:path');
 
 const playCM = require('./commands/play')
 
+const { Manager } = require("erela.js");
+
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -50,9 +52,40 @@ function registerCommands() {
     });
 }
 
+client.manager = new Manager({
+    nodes: [
+      {
+        host: "localhost",
+        port: 2333,
+        password: process.env.LAVALINK_PASS,
+      },
+    ],
+    send(id, payload) {
+      const guild = client.guilds.cache.get(id);
+      if (guild) guild.shard.send(payload);
+    },
+  })
+  .on("nodeConnect", node => console.log(`Node ${node.options.identifier} connected`))
+  .on("nodeError", (node, error) => console.log(`Node ${node.options.identifier} had an error: ${error.message}`))
+  .on("trackStart", (player, track) => {
+    client.channels.cache
+      .get(player.textChannel)
+      .send(`Now playing: **${track.title}**`);
+  })
+  .on("queueEnd", (player) => {
+    client.channels.cache
+      .get(player.textChannel)
+      .send("Queue has ended.");
+
+    player.destroy(true);
+
+    global.gc();
+  });
+
 client.once('ready', () => {
     registerCommands();
     console.log('Ready');
+    client.manager.init(client.user.id);
 
     mainChannel = client.guilds.cache.get(process.env.MAINGUILDID).channels.cache.get(process.env.MAINCHANNELID);
     mainGuild = client.guilds.cache.get(process.env.MAINGUILDID);
@@ -73,19 +106,7 @@ client.on('guildDelete', (guild) => {
     mainChannel.send({ content: `Removed from guild name: ${guild.name} id: ${guild.id}` })
 });
 
-/**
- * 
- *      Disconnect handler
- * 
- */
-
-client.on('voiceStateUpdate', (oldState, args, newState) => {
-    if (oldState.channelId === null || typeof oldState.channelId == 'undefined') return;
-
-    if (oldState.member.displayName === 'Piech Universal') {
-        playCM.disconnect(oldState.guild);
-    }
-});
+client.on("raw", (d) => client.manager.updateVoiceState(d));
 
 /**
  * 
@@ -95,14 +116,12 @@ client.on('voiceStateUpdate', (oldState, args, newState) => {
 
 process.on('unhandledRejection', err => {
     const guild = client.guilds.cache.get(process.env.DSGUILDID);
-    const ereport = guild.channels.cache.get('1020804444788621342');
     console.error('Unhandled promise rejection:', err);
     const error = new EmbedBuilder()
         .setTitle(`Error detected`)
         .setDescription("```" + err + "```")
         .setColor(Colors.Red)
     mainChannel.send({ embeds: [error] })
-    ereport.send({ embeds: [error] })
 });
 
 /**
