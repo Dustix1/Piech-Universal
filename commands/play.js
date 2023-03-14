@@ -12,9 +12,8 @@ const {
     getVoiceConnection
 } = require('@discordjs/voice');
 
-const queue = new Map();
-
 let player;
+let currSong;
 
 var connection = joinVoiceChannel
 
@@ -60,6 +59,10 @@ module.exports = {
             player.queue.totalSize === res.tracks.length
         )
             player.play();
+
+            if(player.queue.size < 1) {
+                currSong = res.tracks[0].title;
+            }
     },
     /**
      * 
@@ -151,8 +154,8 @@ module.exports = {
         if (!player || player.state == "DISCONNECTED") {
             interaction.reply({ content: 'I am not connected to any voice channel!', ephemeral: true });
         } else {
-            player.trackRepeat ? player.setQueueRepeat(false) : player.setQueueRepeat(true);
-            interaction.reply({ content: `Queue loop is now ${player.trackRepeat ? "**enabled**" : "**disabled**"} :repeat:` });
+            player.queueRepeat ? player.setQueueRepeat(false) : player.setQueueRepeat(true);
+            interaction.reply({ content: `Queue loop is now ${player.queueRepeat ? "**enabled**" : "**disabled**"} :repeat:` });
         }
     }
 }
@@ -160,9 +163,9 @@ module.exports = {
 const sendQueuedSongs = (interaction, queuedSongs) => {
     const embed = new EmbedBuilder()
         .setColor('Random')
-        .setTitle('Queued songs')
-        .setAuthor({ name: 'Queue [' + player.queue.size + ']', iconURL: 'https://i.imgur.com/M6GOXYo.png%27' })
-        .addFields({ name: '**Queued songs:**\n', value: queuedSongs })
+        .setTitle('Currently playing: '+ currSong)
+        .setAuthor({ name: 'There are ' + player.queue.size + ' songs queued', iconURL: 'https://i.imgur.com/M6GOXYo.png%27' })
+        .addFields({ name: 'Songs in queue:\n', value: queuedSongs })
         .setFooter({ text: '© Dustix#7302', iconURL: 'https://i.imgur.com/M6GOXYo.png%27' });
 
     interaction.channel.send({ embeds: [embed] })

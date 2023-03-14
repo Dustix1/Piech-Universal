@@ -54,33 +54,37 @@ function registerCommands() {
 
 client.manager = new Manager({
     nodes: [
-      {
-        host: "localhost",
-        port: 2333,
-        password: process.env.LAVALINK_PASS,
-      },
+        {
+            host: "localhost",
+            port: 2333,
+            password: process.env.LAVALINK_PASS,
+        },
     ],
     send(id, payload) {
-      const guild = client.guilds.cache.get(id);
-      if (guild) guild.shard.send(payload);
+        const guild = client.guilds.cache.get(id);
+        if (guild) guild.shard.send(payload);
     },
-  })
-  .on("nodeConnect", node => console.log(`Node ${node.options.identifier} connected`))
-  .on("nodeError", (node, error) => console.log(`Node ${node.options.identifier} had an error: ${error.message}`))
-  .on("trackStart", (player, track) => {
-    client.channels.cache
-      .get(player.textChannel)
-      .send(`Now playing: **${track.title}**`);
-  })
-  .on("queueEnd", (player) => {
-    client.channels.cache
-      .get(player.textChannel)
-      .send("Queue has ended.");
+})
+    .on("nodeConnect", node => console.log(`Node ${node.options.identifier} connected`))
+    .on("nodeError", (node, error) => console.log(`Node ${node.options.identifier} had an error: ${error.message}`))
+    .on("trackStart", (player, track) => {
+        client.channels.cache
+            .get(player.textChannel)
+            .send(`Now playing: **${track.title}**`)
+    })
+    .on("queueEnd", (player) => {
+        client.channels.cache
+            .get(player.textChannel)
+            .send("Queue has ended.");
 
-    player.destroy(true);
+        player.destroy(true);
 
-    global.gc();
-  });
+        global.gc();
+    })
+    .on("playerDisconnect", (player, from) => {
+        console.log(`player ${player.guild} disconnected from ${from}`);
+        player.destroy();
+    });
 
 client.once('ready', () => {
     registerCommands();
