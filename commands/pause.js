@@ -4,10 +4,10 @@ const playCM = require('./play')
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('loop-queue')
-        .setDescription('Loops the whole queue.'),
+        .setName('pause')
+        .setDescription('Pauses the current song.'),
     async execute(interaction, client) {
         
-        playCM.loopQueue(interaction, client);
+        playCM.pause_song(interaction, client);
     }
 }

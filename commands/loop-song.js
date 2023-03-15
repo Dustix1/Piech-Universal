@@ -8,6 +8,6 @@ module.exports = {
         .setDescription('Loops the current song.'),
     async execute(interaction, client) {
         
-        playCM.loopSong(interaction);
+        playCM.loopSong(interaction, client);
     }
 }

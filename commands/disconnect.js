@@ -8,6 +8,6 @@ module.exports = {
         .setDescription('Disconnects the bot from the voice channel.'),
     async execute(interaction, client) {
         
-        playCM.disconnect(interaction.guild, interaction);
+        playCM.disconnect(interaction.guild, interaction, client);
     }
 }

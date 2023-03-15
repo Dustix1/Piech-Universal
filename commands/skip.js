@@ -8,6 +8,6 @@ module.exports = {
         .setDescription('Skips the current song.'),
     async execute(interaction, client) {
         
-        playCM.skip_song(interaction);
+        playCM.skip_song(interaction, client);
     }
 }

@@ -12,9 +12,6 @@ const {
     getVoiceConnection
 } = require('@discordjs/voice');
 
-let player;
-let currSong;
-
 var connection = joinVoiceChannel
 
 module.exports = {
@@ -34,7 +31,7 @@ module.exports = {
         );
 
         // Create a new player. This will return the player if it already exists.
-        player = client.manager.create({
+        const player = client.manager.create({
             guild: interaction.guild.id,
             voiceChannel: interaction.member.voice.channel.id,
             textChannel: interaction.channel.id,
@@ -59,10 +56,6 @@ module.exports = {
             player.queue.totalSize === res.tracks.length
         )
             player.play();
-
-            if(player.queue.size < 1) {
-                currSong = res.tracks[0].title;
-            }
     },
     /**
      * 
@@ -70,7 +63,8 @@ module.exports = {
      * 
      */
 
-    disconnect(guild, interaction) {
+    disconnect(guild, interaction, client) {
+        const player = client.manager.players.get(guild.id);
         if (player.state != "DISCONNECTED") {
             player.destroy(true);
             interaction.reply({ content: 'Disconnected from voice channel!' });
@@ -86,7 +80,8 @@ module.exports = {
      * 
      */
 
-    getQueuedSongs(interaction, startIndex) {
+    getQueuedSongs(interaction, startIndex, client) {
+        const player = client.manager.players.get(interaction.guild.id);
         if (!player || player.state == "DISCONNECTED") {
             interaction.reply({ content: 'I am not connected to any voice channel!', ephemeral: true });
             return 'No';
@@ -111,10 +106,10 @@ module.exports = {
                     queuedSongs += ('**' + (index + 1) + '.** ***' + title + '***\n')
                 }
                 if (moreThanTen) {
-                    sendQueuedSongs(interaction, queuedSongs)
+                    sendQueuedSongs(interaction, queuedSongs, player)
                     module.exports.getQueuedSongs(interaction, startIndex + 10)
                 } else {
-                    sendQueuedSongs(interaction, queuedSongs)
+                    sendQueuedSongs(interaction, queuedSongs, player)
                 }
             }
         }
@@ -126,12 +121,33 @@ module.exports = {
      * 
      */
 
-    skip_song(interaction) {
+    skip_song(interaction, client) {
+        const player = client.manager.players.get(interaction.guild.id);
         if (!player || player.state == "DISCONNECTED") {
             interaction.reply({ content: 'I am not connected to any voice channel!', ephemeral: true });
         } else {
             player.stop();
             interaction.reply({ content: 'Skipping song...' });
+        }
+    },
+
+    pause_song(interaction, client) {
+        const player = client.manager.players.get(interaction.guild.id);
+        if (!player || player.state == "DISCONNECTED") {
+            interaction.reply({ content: 'I am not connected to any voice channel!', ephemeral: true });
+        } else {
+            player.paused ? interaction.reply({ content: 'Song is already paused! To resume use /resume', ephemeral: true }) : interaction.reply({ content: ':pause_button: Pausing song...' });
+            player.pause(true);
+        }
+    },
+
+    resume_song(interaction, client) {
+        const player = client.manager.players.get(interaction.guild.id);
+        if (!player || player.state == "DISCONNECTED") {
+            interaction.reply({ content: 'I am not connected to any voice channel!', ephemeral: true });
+        } else {
+            player.paused ? interaction.reply({ content: ':arrow_forward: Resuming song...' }) : interaction.reply({ content: 'Song is already playing! To pause use /pause', ephemeral: true });
+            player.pause(false);
         }
     },
 
@@ -141,7 +157,8 @@ module.exports = {
      * 
      */
 
-    loopSong(interaction) {
+    loopSong(interaction, client) {
+        const player = client.manager.players.get(interaction.guild.id);
         if (!player || player.state == "DISCONNECTED") {
             interaction.reply({ content: 'I am not connected to any voice channel!', ephemeral: true });
         } else {
@@ -150,21 +167,22 @@ module.exports = {
         }
     },
 
-    loopQueue(interaction) {
+    loopQueue(interaction, client) {
+        const player = client.manager.players.get(interaction.guild.id);
         if (!player || player.state == "DISCONNECTED") {
             interaction.reply({ content: 'I am not connected to any voice channel!', ephemeral: true });
         } else {
             player.queueRepeat ? player.setQueueRepeat(false) : player.setQueueRepeat(true);
             interaction.reply({ content: `Queue loop is now ${player.queueRepeat ? "**enabled**" : "**disabled**"} :repeat:` });
         }
-    }
+    },
 }
 
-const sendQueuedSongs = (interaction, queuedSongs) => {
+const sendQueuedSongs = (interaction, queuedSongs, player) => {
     const embed = new EmbedBuilder()
         .setColor('Random')
-        .setTitle('Currently playing: '+ currSong)
-        .setAuthor({ name: 'There are ' + player.queue.size + ' songs queued', iconURL: 'https://i.imgur.com/M6GOXYo.png%27' })
+        .setTitle('Currently playing: '+ player.queue.current.title)
+        .setAuthor({ name: player.queue.size == 1 ? 'There is ' + player.queue.size + ' song queued' : 'There are ' + player.queue.size + ' songs queued', iconURL: 'https://i.imgur.com/M6GOXYo.png%27' })
         .addFields({ name: 'Songs in queue:\n', value: queuedSongs })
         .setFooter({ text: '© Dustix#7302', iconURL: 'https://i.imgur.com/M6GOXYo.png%27' });
 

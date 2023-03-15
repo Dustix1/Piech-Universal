@@ -8,7 +8,7 @@ module.exports = {
         .setDescription('Lists the current queue.'),
     async execute(interaction, client) {
         
-        if (playCM.getQueuedSongs(interaction, 0) != 'No') {
+        if (playCM.getQueuedSongs(interaction, 0, client) != 'No') {
             interaction.reply({ content: 'Listing Queue.', ephemeral: true })
         }
     }
