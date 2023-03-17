@@ -20,6 +20,10 @@ const client = new Client({
     ]
 });
 
+const chalk = require('chalk');
+const cliSpinners = require('cli-spinners');
+const ora = require('ora');
+
 var mainChannel;
 var mainGuild;
 
@@ -39,17 +43,35 @@ for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
     const command = require(filePath);
     commands.push(command.data.toJSON());
-    console.log(`Adding command ${command.data.name}`)
+    //console.log(`Adding command ${command.data.name}`)
 }
 
+const spinnerLava = ora(chalk.cyanBright('Connecting to lavalink'));
+const spinnerCmd = ora(chalk.cyanBright('Loading commands'));
+
+let firststart = true
 function registerCommands() {
     const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
+    let i = 0;
 
     client.guilds.cache.forEach(guild => {
         rest.put(Routes.applicationGuildCommands(process.env.CLIENTID, guild.id), { body: commands })
-            .then((data) => console.log(`Successfully registered ${data.length} commands on guild ${guild.name}.`))
-            .catch(`Could not register commands on guild ${guild.name}!`);
-    });
+        i++;
+    })
+    if (i == client.guilds.cache.size) {
+        spinnerCmd.succeed(chalk.green('Commands registered'));
+        if (firststart) {
+            const spinner = ora(chalk.cyanBright('Finalizing'));
+            spinner.start();
+            setTimeout(() => {
+                spinner.stopAndPersist({
+                    symbol: chalk.greenBright('✔'),
+                    text: chalk.blue.bold('Loading complete')
+                });
+            }, 500);
+            firststart = false
+        }
+    }
 }
 
 client.manager = new Manager({
@@ -65,8 +87,17 @@ client.manager = new Manager({
         if (guild) guild.shard.send(payload);
     },
 })
-    .on("nodeConnect", node => console.log(`Node ${node.options.identifier} connected`))
-    .on("nodeError", (node, error) => console.log(`Node ${node.options.identifier} had an error: ${error.message}`))
+    .on("nodeConnect", node => spinnerLava.succeed(chalk.green(`Connected to lavalink`)))
+    .on("nodeError", (node, error) => {
+        if (error.message != "Unexpected op \"ready\" with data: [object Object]") {
+            spinnerLava.fail(chalk.red.bold(`Lavalink node error: ${error.message}`));
+        } else {
+            spinnerLava.stopAndPersist({
+                symbol: chalk.yellow.bold('⚠'),
+                text: chalk.yellow.bold(` Lavalink node warn: ${error.message}`)
+            });
+        }
+    })
     .on("trackStart", (player, track) => {
         client.channels.cache
             .get(player.textChannel)
@@ -87,14 +118,27 @@ client.manager = new Manager({
     });
 
 client.once('ready', () => {
-    registerCommands();
-    console.log('Ready');
-    client.manager.init(client.user.id);
+    console.log(chalk.cyan(`Starting Piech Universal...`));
+    spinnerLava.color = 'yellow';
+    spinnerLava.spinner = cliSpinners.bouncingBar;
+    spinnerLava.start();
+    setTimeout(() => {
+        client.manager.init(client.user.id);
+
+        spinnerCmd.text = chalk.cyanBright('Loading commands');
+        spinnerCmd.color = 'green';
+        spinnerCmd.spinner = cliSpinners.dots;
+        spinnerCmd.start();
+        setTimeout(() => {
+            registerCommands();
+        }, 1500);
+    }, 2000);
+
 
     mainChannel = client.guilds.cache.get(process.env.MAINGUILDID).channels.cache.get(process.env.MAINCHANNELID);
     mainGuild = client.guilds.cache.get(process.env.MAINGUILDID);
 
-    mainChannel.send({ content: `Bot Ready` })
+    //mainChannel.send({ content: `Bot Ready` })
     client.user.setPresence({
         activities: [{ name: '/help', type: ActivityType.Listening }],
         status: 'online',
@@ -119,8 +163,7 @@ client.on("raw", (d) => client.manager.updateVoiceState(d));
  */
 
 process.on('unhandledRejection', err => {
-    const guild = client.guilds.cache.get(process.env.DSGUILDID);
-    console.error('Unhandled promise rejection:', err);
+    console.error(chalk.red.bold('Unhandled promise rejection:'), chalk.red(err));
     const error = new EmbedBuilder()
         .setTitle(`Error detected`)
         .setDescription("```" + err + "```")
@@ -142,7 +185,7 @@ client.on('interactionCreate', async interaction => {
     if (!command) return;
 
     try {
-        console.log(`**${interaction.user.tag}** used command **${interaction.commandName}** on guild **${interaction.guild.name}**`);
+        console.log(chalk.blue.bold('Piech Universal') + ' >> ' + chalk.cyan.bold(`${interaction.user.tag}`) + chalk.gray(` used `) + chalk.cyan.bold(`${interaction}`) + chalk.gray(` on `) + chalk.cyan.bold(`${interaction.guild.name}`));
         await command.execute(interaction, client);
     } catch (error) {
         console.error(error)

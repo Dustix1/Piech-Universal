@@ -24,6 +24,10 @@ module.exports = {
                 .setDescription('The song to search')
                 .setRequired(true)),
     async execute(interaction, client) {
+        if(!interaction.member.voice.channel.id) {
+            interaction.reply({ content: 'You need to be in a voice channel to use this command!', ephemeral: true });
+            return;
+        }
 
         const res = await client.manager.search(
             interaction.options.getString('search'),
@@ -37,12 +41,17 @@ module.exports = {
             textChannel: interaction.channel.id,
         });
 
-        // Connect to the voice channel.
-        player.connect();
-
-        // Adds the first track to the queue.
+        try {
+            // Adds the first track to the queue.
         player.queue.add(res.tracks[0]);
         interaction.reply(`Enqueuing track **${res.tracks[0].title}**.`);
+        } catch (error) {
+            interaction.reply({ content: 'Song not found!', ephemeral: true });
+            player.destroy(true);
+            return;
+        }
+        
+        player.connect();
 
         // Plays the player (plays the first track in the queue).
         // The if statement is needed else it will play the current track again
@@ -65,13 +74,12 @@ module.exports = {
 
     disconnect(guild, interaction, client) {
         const player = client.manager.players.get(guild.id);
-        if (player.state != "DISCONNECTED") {
+        if (!player || player.state == "DISCONNECTED") {
+            interaction.reply({ content: 'I am not connected to any voice channel!', ephemeral: true });
+        } else {
             player.destroy(true);
             interaction.reply({ content: 'Disconnected from voice channel!' });
-        } else {
-            interaction.reply({ content: 'I am not connected to any voice channel!', ephemeral: true });
         }
-
     },
 
     /**
