@@ -9,6 +9,7 @@ const path = require('node:path');
 const playCM = require('./commands/play')
 
 const { Manager } = require("erela.js");
+
 const inquirer = require('inquirer');
 
 const client = new Client({
@@ -28,6 +29,12 @@ const ora = require('ora');
 var mainChannel;
 var mainGuild;
 
+/**
+ * 
+ * Registering commands
+ * 
+ */
+
 client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
@@ -39,42 +46,6 @@ for (const file of commandFiles) {
     client.commands.set(command.data.name, command);
     commands.push(command.data.toJSON());
 }
-
-function reloadCommand(client, commandName) {
-    const spinnerReload = ora(chalk.cyanBright(`Reloading ${commandName}`));
-    spinnerReload.color = 'green';
-    spinnerReload.spinner = cliSpinners.dots
-    spinnerReload.start();
-
-    delete require.cache[require.resolve(`./commands/${commandName}`)];
-    const commandOld = require(`./commands/${commandName}`);
-    commands.splice(commands.indexOf(commandOld.data.toJSON()), 1);
-    client.commands.delete(commandOld.data.name);
-    const commandNew = require(`./commands/${commandName}`);
-    client.commands.set(commandNew.data.name, commandNew);
-    commands.push(commandNew.data.toJSON())
-    .then(() => {
-        spinnerReload.succeed(chalk.green(`Reloaded ${commandName}`))
-        reloadCommandsPrompt(client);
-    })
-}
-
-function reloadCommandsPrompt(client) {
-    inquirer.prompt([
-        {
-            type: 'list',
-            name: 'command',
-            message: 'Which command do you want to reload?',
-            choices: client.commands.map(c => c.data.name + '.js')
-        }
-    ]).then(answer => {
-        reloadCommand(client, answer.command);
-    });
-}
-
-
-const spinnerLava = ora(chalk.cyanBright('Connecting to lavalink'));
-const spinnerCmd = ora(chalk.cyanBright('Loading commands'));
 
 let firststart = true
 function registerCommands() {
@@ -95,12 +66,185 @@ function registerCommands() {
                     symbol: chalk.greenBright('✔'),
                     text: chalk.blue.bold('Loading complete')
                 });
-                reloadCommandsPrompt(client);
+                Prompt();
             }, 500);
             firststart = false
         }
     }
 }
+
+/**
+ * 
+ * Loading, unloading and reloading commands
+ * 
+ */
+
+async function unloadCommand(client, commandName) {
+    const spinnerUnload = ora(chalk.cyanBright(`Unloading ${commandName}`));
+    spinnerUnload.color = 'green';
+    spinnerUnload.spinner = cliSpinners.dots
+    spinnerUnload.start();
+
+    if (client.commands.has(commandName.substring(0, commandName.length - 3))) {
+        try {
+            delete require.cache[require.resolve(`./commands/${commandName}`)];
+            const commandOld = require(`./commands/${commandName}`);
+            commands.splice(commands.indexOf(commandOld.data.toJSON()), 1);
+            client.commands.delete(commandOld.data.name);
+        } catch (error) {
+            setTimeout(() => {
+                spinnerUnload.fail(chalk.red(`${commandName} not found`))
+                Prompt();
+            }, 500);
+            return;
+        }
+    } else {
+        setTimeout(() => {
+            spinnerUnload.fail(chalk.red(`${commandName} not loaded`))
+            Prompt();
+        }, 500);
+        return;
+    }
+    setTimeout(() => {
+        spinnerUnload.succeed(chalk.green(`Unloaded ${commandName}`))
+        Prompt();
+    }, 500);
+}
+
+async function loadCommand(client, commandName) {
+    const spinnerLoad = ora(chalk.cyanBright(`Loading ${commandName}`));
+    spinnerLoad.color = 'green';
+    spinnerLoad.spinner = cliSpinners.dots
+    spinnerLoad.start();
+
+    if (!client.commands.has(commandName.substring(0, commandName.length - 3))) {
+        try {
+            const commandNew = require(`./commands/${commandName}`);
+            client.commands.set(commandNew.data.name, commandNew);
+            commands.push(commandNew.data.toJSON())
+        } catch (error) {
+            setTimeout(() => {
+                spinnerLoad.fail(chalk.red(`${commandName} not found`))
+                Prompt();
+            }, 500);
+            return;
+        }
+        setTimeout(() => {
+            spinnerLoad.succeed(chalk.green(`Loaded ${commandName}`))
+            Prompt();
+        }, 500);
+    } else {
+        setTimeout(() => {
+            spinnerLoad.fail(chalk.red(`${commandName} already loaded reloading...`))
+            reloadCommand(client, commandName);
+        }, 500);
+    }
+}
+
+async function reloadCommand(client, commandName) {
+    const spinnerReload = ora(chalk.cyanBright(`Reloading ${commandName}`));
+    spinnerReload.color = 'green';
+    spinnerReload.spinner = cliSpinners.dots
+    spinnerReload.start();
+
+    delete require.cache[require.resolve(`./commands/${commandName}`)];
+    const commandOld = require(`./commands/${commandName}`);
+    commands.splice(commands.indexOf(commandOld.data.toJSON()), 1);
+    client.commands.delete(commandOld.data.name);
+    const commandNew = require(`./commands/${commandName}`);
+    client.commands.set(commandNew.data.name, commandNew);
+    commands.push(commandNew.data.toJSON())
+    setTimeout(() => {
+        spinnerReload.succeed(chalk.green(`Reloaded ${commandName}`))
+        Prompt();
+    }, 500);
+}
+
+/**
+ * 
+ * Command prompts
+ * 
+ */
+
+function Prompt() {
+    inquirer.prompt([
+        {
+            type: 'input',
+            name: 'command',
+            message: chalk.blue.bold('Piech Universal') + ' >> '
+        }
+    ]).then(answer => {
+        const args = answer.command.split(' ');
+        switch (args[0]) {
+            case '':
+                Prompt();
+                break;
+            case 'exit':
+                process.exit();
+            case 'reload':
+                reloadCommandsPrompt(client);
+                break;
+            case 'unload':
+                !args[1] ? unloadCommandsPrompt(client) : unloadCommand(client, args[1]);
+                break;
+            case 'load':
+                if (!args[1]) {
+                    console.log(chalk.red('You need to specify a command to load'));
+                    Prompt();
+                } else {
+                    loadCommand(client, args[1]);
+                }
+                break;
+            case 'help':
+                console.log(chalk.blue('reload') + ' - Reloads a command');
+                console.log(chalk.blue('unload') + ' - Unloads a command');
+                console.log(chalk.blue('load') + ' - Loads a command');
+                console.log(chalk.blue('help') + ' - Shows this message');
+                console.log(chalk.blue('exit') + ' - Exits the bot');
+                Prompt();
+                break;
+            default:
+                console.log(chalk.red('Invalid command'));
+                Prompt();
+                break;
+        }
+    });
+}
+
+function unloadCommandsPrompt(client) {
+    inquirer.prompt([
+        {
+            type: 'list',
+            name: 'command',
+            message: 'Which command do you want to unload?',
+            choices: client.commands.map(c => c.data.name + '.js')
+        }
+    ]).then(answer => {
+        unloadCommand(client, answer.command);
+    });
+}
+
+function reloadCommandsPrompt(client) {
+    inquirer.prompt([
+        {
+            type: 'list',
+            name: 'command',
+            message: 'Which command do you want to reload?',
+            choices: client.commands.map(c => c.data.name + '.js')
+        }
+    ]).then(answer => {
+        reloadCommand(client, answer.command);
+    });
+}
+
+/**
+ * 
+ * Lavalink connection
+ * 
+ */
+
+const spinnerLava = ora(chalk.cyanBright('Connecting to lavalink'));
+const spinnerCmd = ora(chalk.cyanBright('Loading commands'));
 
 client.manager = new Manager({
     nodes: [
@@ -146,6 +290,12 @@ client.manager = new Manager({
         player.destroy();
     });
 
+/**
+ * 
+ * Once bot ready
+ * 
+ */
+
 client.once('ready', () => {
     console.log(chalk.cyan(`Starting Piech Universal...`));
     spinnerLava.color = 'yellow';
@@ -167,12 +317,17 @@ client.once('ready', () => {
     mainChannel = client.guilds.cache.get(process.env.MAINGUILDID).channels.cache.get(process.env.MAINCHANNELID);
     mainGuild = client.guilds.cache.get(process.env.MAINGUILDID);
 
-    //mainChannel.send({ content: `Bot Ready` })
     client.user.setPresence({
         activities: [{ name: '/help', type: ActivityType.Listening }],
         status: 'online',
     })
 });
+
+/**
+ * 
+ * Guild create/delete events
+ * 
+ */
 
 client.on('guildCreate', (guild) => {
     registerCommands();
@@ -192,7 +347,7 @@ client.on("raw", (d) => client.manager.updateVoiceState(d));
  */
 
 process.on('unhandledRejection', err => {
-    console.error(chalk.red.bold(chalk.blue.bold('Piech Universal') + ' >> ' + 'Unhandled promise rejection:'), err);
+    console.error(chalk.red.bold('Unhandled promise rejection:'), err); // chalk.blue.bold('Piech Universal') + ' >> ' +
     const error = new EmbedBuilder()
         .setTitle(`Error detected`)
         .setDescription("```" + err + "```")
@@ -214,7 +369,7 @@ client.on('interactionCreate', async interaction => {
     if (!command) return;
 
     try {
-        console.log(chalk.blue.bold('Piech Universal') + ' >> ' + chalk.cyan.bold(`${interaction.user.tag}`) + chalk.gray(` used `) + chalk.cyan.bold(`${interaction}`) + chalk.gray(` on `) + chalk.cyan.bold(`${interaction.guild.name}`));
+        console.log(chalk.cyan.bold(`${interaction.user.tag}`) + chalk.gray(` used `) + chalk.cyan.bold(`${interaction}`) + chalk.gray(` on `) + chalk.cyan.bold(`${interaction.guild.name}`));
         await command.execute(interaction, client);
     } catch (error) {
         console.error(error)

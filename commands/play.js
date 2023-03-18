@@ -111,7 +111,7 @@ module.exports = {
                         moreThanTen = true
                         break
                     }
-                    queuedSongs += ('**' + (index + 1) + '.** ***' + title + '***\n')
+                    queuedSongs += ('**' + (index + 1) + '.** ' + title + '\n')
                 }
                 if (moreThanTen) {
                     sendQueuedSongs(interaction, queuedSongs, player)
