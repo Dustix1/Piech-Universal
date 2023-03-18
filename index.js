@@ -9,6 +9,7 @@ const path = require('node:path');
 const playCM = require('./commands/play')
 
 const { Manager } = require("erela.js");
+const inquirer = require('inquirer');
 
 const client = new Client({
     intents: [
@@ -31,20 +32,46 @@ client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
+const commands = [];
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
     const command = require(filePath);
     client.commands.set(command.data.name, command);
-}
-
-const commands = [];
-
-for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    const command = require(filePath);
     commands.push(command.data.toJSON());
-    //console.log(`Adding command ${command.data.name}`)
 }
+
+function reloadCommand(client, commandName) {
+    const spinnerReload = ora(chalk.cyanBright(`Reloading ${commandName}`));
+    spinnerReload.color = 'green';
+    spinnerReload.spinner = cliSpinners.dots
+    spinnerReload.start();
+
+    delete require.cache[require.resolve(`./commands/${commandName}`)];
+    const commandOld = require(`./commands/${commandName}`);
+    commands.splice(commands.indexOf(commandOld.data.toJSON()), 1);
+    client.commands.delete(commandOld.data.name);
+    const commandNew = require(`./commands/${commandName}`);
+    client.commands.set(commandNew.data.name, commandNew);
+    commands.push(commandNew.data.toJSON())
+    .then(() => {
+        spinnerReload.succeed(chalk.green(`Reloaded ${commandName}`))
+        reloadCommandsPrompt(client);
+    })
+}
+
+function reloadCommandsPrompt(client) {
+    inquirer.prompt([
+        {
+            type: 'list',
+            name: 'command',
+            message: 'Which command do you want to reload?',
+            choices: client.commands.map(c => c.data.name + '.js')
+        }
+    ]).then(answer => {
+        reloadCommand(client, answer.command);
+    });
+}
+
 
 const spinnerLava = ora(chalk.cyanBright('Connecting to lavalink'));
 const spinnerCmd = ora(chalk.cyanBright('Loading commands'));
@@ -68,6 +95,7 @@ function registerCommands() {
                     symbol: chalk.greenBright('✔'),
                     text: chalk.blue.bold('Loading complete')
                 });
+                reloadCommandsPrompt(client);
             }, 500);
             firststart = false
         }
@@ -91,6 +119,7 @@ client.manager = new Manager({
     .on("nodeError", (node, error) => {
         if (error.message != "Unexpected op \"ready\" with data: [object Object]") {
             spinnerLava.fail(chalk.red.bold(`Lavalink node error: ${error.message}`));
+            process.exit(1);
         } else {
             spinnerLava.stopAndPersist({
                 symbol: chalk.yellow.bold('⚠'),
@@ -163,7 +192,7 @@ client.on("raw", (d) => client.manager.updateVoiceState(d));
  */
 
 process.on('unhandledRejection', err => {
-    console.error(chalk.red.bold('Unhandled promise rejection:'), chalk.red(err));
+    console.error(chalk.red.bold(chalk.blue.bold('Piech Universal') + ' >> ' + 'Unhandled promise rejection:'), err);
     const error = new EmbedBuilder()
         .setTitle(`Error detected`)
         .setDescription("```" + err + "```")
