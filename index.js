@@ -6,8 +6,6 @@ dotenv.config()
 const fs = require('node:fs');
 const path = require('node:path');
 
-const playCM = require('./commands/play')
-
 const { Manager } = require("erela.js");
 
 const inquirer = require('inquirer');
@@ -27,7 +25,6 @@ const cliSpinners = require('cli-spinners');
 const ora = require('ora');
 
 var mainChannel;
-var mainGuild;
 
 /**
  * 
@@ -253,6 +250,7 @@ function reloadCommandsPrompt(client) {
 const spinnerLava = ora(chalk.cyanBright('Connecting to lavalink'));
 const spinnerCmd = ora(chalk.cyanBright('Loading commands'));
 
+let prevTrack = '';
 client.manager = new Manager({
     nodes: [
         {
@@ -279,9 +277,14 @@ client.manager = new Manager({
         }
     })
     .on("trackStart", (player, track) => {
-        client.channels.cache
+        if (track.title != prevTrack) {
+            client.channels.cache
             .get(player.textChannel)
             .send(`Now playing: **${track.title}**`)
+            prevTrack = track.title;
+        } else {
+            return;
+        }
     })
     .on("queueEnd", (player) => {
         client.channels.cache
@@ -322,7 +325,6 @@ client.once('ready', () => {
 
 
     mainChannel = client.guilds.cache.get(process.env.MAINGUILDID).channels.cache.get(process.env.MAINCHANNELID);
-    mainGuild = client.guilds.cache.get(process.env.MAINGUILDID);
 
     client.user.setPresence({
         activities: [{ name: '/help', type: ActivityType.Listening }],
