@@ -12,8 +12,6 @@ const {
     getVoiceConnection
 } = require('@discordjs/voice');
 
-var connection = joinVoiceChannel
-
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('play')

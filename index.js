@@ -174,15 +174,22 @@ function Prompt() {
             message: chalk.blue.bold('Piech Universal') + ' >> '
         }
     ]).then(answer => {
-        const args = answer.command.split(' ');
+        const args = answer.command.toLowerCase().split(' ');
         switch (args[0]) {
             case '':
                 Prompt();
                 break;
             case 'exit':
-                process.exit();
+                let i = 0;
+                client.guilds.cache.forEach(guild => {
+                    let player = client.manager.players.get(guild.id);
+                    player ? player.destroy(true) : null;
+                    i++;
+                    i == client.guilds.cache.size ? process.exit() : null;
+                });
+                break;
             case 'reload':
-                reloadCommandsPrompt(client);
+                !args[1] ? reloadCommandsPrompt(client) : reloadCommand(client, args[1]);
                 break;
             case 'unload':
                 !args[1] ? unloadCommandsPrompt(client) : unloadCommand(client, args[1]);
@@ -347,7 +354,7 @@ client.on("raw", (d) => client.manager.updateVoiceState(d));
  */
 
 process.on('unhandledRejection', err => {
-    console.error(chalk.red.bold('Unhandled promise rejection:'), err); // chalk.blue.bold('Piech Universal') + ' >> ' +
+    console.error(chalk.red.bold(chalk.blue.bold('Piech Universal') + ' >> ' + 'Unhandled promise rejection:'), err);
     const error = new EmbedBuilder()
         .setTitle(`Error detected`)
         .setDescription("```" + err + "```")
@@ -369,7 +376,7 @@ client.on('interactionCreate', async interaction => {
     if (!command) return;
 
     try {
-        console.log(chalk.cyan.bold(`${interaction.user.tag}`) + chalk.gray(` used `) + chalk.cyan.bold(`${interaction}`) + chalk.gray(` on `) + chalk.cyan.bold(`${interaction.guild.name}`));
+        console.log(chalk.blue.bold('\nPiech Universal') + ' >> ' + chalk.cyan.bold(`${interaction.user.tag}`) + chalk.gray(` used `) + chalk.cyan.bold(`${interaction}`) + chalk.gray(` on `) + chalk.cyan.bold(`${interaction.guild.name}`));
         await command.execute(interaction, client);
     } catch (error) {
         console.error(error)
